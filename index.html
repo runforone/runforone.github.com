@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>  
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<script type="text/javascript" src="js/lufylegend-1.9.7.min.js"></script>   
+<title>demo</title>  
+</head>  
+<body  style="margin:0px 0px 0px 0px;">  
+<div id="mylegend">loading....</div>  
+<script>  
+
+var width = 900;
+var height = 1400;
+var frameRate = 60;
+var imageSize = 7;
+var loadData = [
+{name:"img1",path:"images/c1.jpg",type:"bitmapData"},
+{name:"img2",path:"images/c2.jpg",type:"bitmapData"},
+{name:"img3",path:"images/c3.jpg",type:"bitmapData"},
+{name:"img4",path:"images/c4.jpg",type:"bitmapData"},
+{name:"img5",path:"images/c5.jpg",type:"bitmapData"},
+{name:"img6",path:"images/c6.jpg",type:"bitmapData"},
+{name:"img7",path:"images/c7.jpg",type:"bitmapData"}
+];
+
+if(true || LGlobal.canTouch){
+	LGlobal.stageScale = LStageScaleMode.EXACT_FIT;
+	LSystem.screen(LStage.FULL_SCREEN);
+}
+var loader;
+var datalist = {};
+init(1000/frameRate,"mylegend",width,height,main);  
+var imageDatas = [];
+var index = 0;
+var bitmapBottom;
+var bitmaps;
+var isAction= false;
+var isUp = true;
+var lastY = 0;
+var isClickOn = false;
+function main(){  
+	var loadsample = new LoadingSample4();
+	addChild(loadsample);
+	LLoadManage.load(
+		loadData,
+		function(progress){ 
+			loadsample.setProgress(progress);
+		},
+		function(result){
+			LGlobal.setDebug(true);
+			datalist = result;
+			removeChild(loadsample);
+			loadsample = null;
+			gameInit();
+		}
+	);
+}  
+
+function gameInit(){
+    var layer = new LSprite();
+    addChild(layer);
+    var bmd = new LBitmapData("#AAAAAA", 0, 0, width, height);
+    var bm = new LBitmap(bmd);
+    layer.addChild(bm);
+	
+	for(var i = 0 ; i < imageSize ; i++){
+		var tempBmd = new LBitmapData(datalist["img"+(i+1)], 0, 0, width, height);
+		imageDatas[i] = tempBmd;
+	}
+	
+	bitmapBottom = new LBitmap(imageDatas[index]);
+	layer.addChild(bitmapBottom);
+	
+    bitmaps = new LBitmap(imageDatas[index]);
+    layer.addChild(bitmaps);
+	
+	layer.addEventListener(LMouseEvent.MOUSE_DOWN,down);
+	layer.addEventListener(LMouseEvent.MOUSE_MOVE,move);
+	layer.addEventListener(LMouseEvent.MOUSE_UP,up);
+	layer.addEventListener(LMouseEvent.MOUSE_OUT,up);
+	setInterval(function(){
+		if(isAction){
+			var leftH = (isUp ? 1 : -1 ) * bitmaps.y;
+			var needScale = leftH / height;
+			bitmapBottom.scaleX = needScale;
+			bitmapBottom.scaleY = needScale;
+			bitmapBottom.y = isUp ? 0 : height * (1 - needScale);
+			bitmapBottom.x = width * (1 - needScale) * 0.5;
+		}
+	},1000/frameRate);
+	
+	var fps = new FPS();
+	layer.addChild(fps);
+}
+
+function down(e){
+	//writeObj(e);
+	if(!isClickOn && !isAction){
+		lastY = e.offsetY;
+		//isAction = true;
+		isClickOn = true;
+	}
+}
+function move(e){
+	if(isClickOn){
+		var nowY = e.offsetY;
+		if(!isAction){
+			isUp = nowY < lastY ? true : false;
+			isAction = true;
+			bitmapBottom.bitmapData = imageDatas[index];
+			var flag = isUp ? 1 : -1 ;
+			index = (index + flag + imageSize) % imageSize;
+			bitmaps.y = flag * height;
+			bitmaps.bitmapData = imageDatas[index];
+		}
+		bitmaps.y += nowY - lastY;
+		lastY = nowY;
+		if( (isUp && bitmaps.y < 0) || (!isUp && bitmaps.y > 0) ){
+			bitmaps.y = 0;
+		}else if(isUp && bitmaps.y > height){
+			bitmaps.y = height;
+		}else if(!isUp && bitmaps.y < -height){
+			bitmaps.y = -height;
+		}
+	}
+}
+function up(e){
+	//writeObj(e);
+	if(isClickOn && isAction){
+		var left = Math.abs(bitmaps.y);
+		LTweenLite.to(
+			bitmaps,
+			1* left / height,
+			{y:0,
+			ease:LEasing.Sine.easeOut,
+			onComplete:function(e){
+				isAction = false;
+				bitmapBottom.scaleX = 1;
+				bitmapBottom.scaleY = 1;
+				bitmapBottom.y = 0;
+				bitmapBottom.x = 0;
+			}});
+		isClickOn = false;
+	}
+}
+function writeObj(obj){ 
+    var description = ""; 
+    for(var i in obj){   
+        var property=obj[i];   
+        description+=i+" = "+property+"\n";  
+    }   
+    console.warn(description); 
+} 
+</script>  
+</body>  
+</html>  
